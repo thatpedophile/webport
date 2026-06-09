@@ -4,11 +4,12 @@ import clientPromise from '@/lib/mongodb';
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
-  // 1. Graceful check instead of throwing a hard error during build time
-  if (!process.env.MONGODB_URI) {
-    console.warn("Warning: MONGODB_URI is missing. Returning placeholder data.");
+  // If the promise is null, the URI was missing (such as during Vercel's build phase)
+  if (!clientPromise) {
+    console.warn("Database client not initialized. Returning fallback template data.");
     return NextResponse.json([
-      { _id: '1', title: 'AMV & Edit Concept Reel', category: 'VFX / Composition', embedUrl: 'https://www.youtube.com/embed/dQw4w9WgXcQ' }
+      { _id: '1', title: 'AMV & Edit Concept Reel', category: 'VFX / Composition', embedUrl: 'https://www.youtube.com/embed/dQw4w9WgXcQ' },
+      { _id: '2', title: 'Hyper-Pop Sound Transition Design', category: 'Sound Effects', embedUrl: 'https://www.youtube.com/embed/dQw4w9WgXcQ' }
     ], { status: 200 });
   }
 
@@ -18,7 +19,7 @@ export async function GET() {
     const videos = await db.collection('videos').find({}).toArray();
     return NextResponse.json(videos, { status: 200 });
   } catch (e) {
-    console.error('Database connection error:', e);
-    return NextResponse.json({ error: 'Failed to fetch items from database' }, { status: 500 });
+    console.error('Database query execution error:', e);
+    return NextResponse.json({ error: 'Failed to extract items from database' }, { status: 500 });
   }
 }
