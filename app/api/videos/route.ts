@@ -4,6 +4,14 @@ import clientPromise from '@/lib/mongodb';
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
+  // 1. Graceful check instead of throwing a hard error during build time
+  if (!process.env.MONGODB_URI) {
+    console.warn("Warning: MONGODB_URI is missing. Returning placeholder data.");
+    return NextResponse.json([
+      { _id: '1', title: 'AMV & Edit Concept Reel', category: 'VFX / Composition', embedUrl: 'https://www.youtube.com/embed/dQw4w9WgXcQ' }
+    ], { status: 200 });
+  }
+
   try {
     const client = await clientPromise;
     const db = client.db('portfolio');
