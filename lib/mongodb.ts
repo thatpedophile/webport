@@ -1,26 +1,27 @@
 import { MongoClient } from 'mongodb';
 
-const uri = process.env.MONGODB_URI as string;
-if (!uri) {
-  throw new Error('Please add your Mongo URI to .env.local or Vercel Environment Variables');
-}
+const uri = process.env.MONGODB_URI;
+let client: MongoClient | null = null;
+let clientPromise: Promise<MongoClient> | null = null;
 
-let client: MongoClient;
-let clientPromise: Promise<MongoClient>;
+// Only initialize the client if the URI exists, preventing a fatal crash at build time
+if (uri) {
+  if (process.env.NODE_ENV === 'development') {
+    let globalWithMongo = global as typeof globalThis & {
+      _mongoClientPromise?: Promise<MongoClient>;
+    };
 
-if (process.env.NODE_ENV === 'development') {
-  let globalWithMongo = global as typeof globalThis & {
-    _mongoClientPromise?: Promise<MongoClient>;
-  };
-
-  if (!globalWithMongo._mongoClientPromise) {
+    if (!globalWithMongo._mongoClientPromise) {
+      client = new MongoClient(uri);
+      globalWithMongo._mongoClientPromise = client.connect();
+    }
+    clientPromise = globalWithMongo._mongoClientPromise;
+  } else {
     client = new MongoClient(uri);
-    globalWithMongo._mongoClientPromise = client.connect();
+    clientPromise = client.connect();
   }
-  clientPromise = globalWithMongo._mongoClientPromise;
 } else {
-  client = new MongoClient(uri);
-  clientPromise = client.connect();
+  console.warn("⚠️ Warning: MONGODB_URI environment variable is missing.");
 }
 
 export default clientPromise;
